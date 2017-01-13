@@ -39,14 +39,18 @@ def intermediate_status():
 def test_amqp(amqp):
     try:
         from charm.amqp_client.client import test
-        from pika.exceptions import ProbableAuthenticationError
+        from pika.exceptions import (
+            ProbableAuthenticationError,
+            ConnectionClosed,
+        )
     except Exception as e:
         msg = "Client failed to import"
         log(msg, "ERROR")
         status_set("blocked", msg)
         raise e
     try:
-        if test(amqp.username(), amqp.password(), amqp.rabbitmq_hosts()[0]):
+        # Test last rabbit node added
+        if test(amqp.username(), amqp.password(), amqp.rabbitmq_hosts()[-1]):
             msg = "Client Succeded"
             log(msg, "INFO")
             status_set("active", msg)
@@ -55,6 +59,12 @@ def test_amqp(amqp):
             log(msg, "ERROR")
             status_set("blocked", msg)
     except ProbableAuthenticationError as e:
-            msg = "Last rabbitmq node related is not yet ready"
+            msg = ("Athentication Failed to {}"
+                   "".format(amqp.rabbitmq_hosts()[-1]))
+            log(msg, "WARNING")
+            status_set("waiting", msg)
+    except ConnectionClosed as e:
+            msg = ("ConnectionClosed from {}"
+                   "".format(amqp.rabbitmq_hosts()[-1]))
             log(msg, "WARNING")
             status_set("waiting", msg)
