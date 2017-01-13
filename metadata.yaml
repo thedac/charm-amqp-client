@@ -1,0 +1,13 @@
+name: amqp-client
+summary: Simple client to test rabbitmq-server
+maintainer: David Ames <david.ames@canonical.com>
+description: |
+  Simple client to test rabbitmq-server
+tags:
+  # Replace "misc" with one or more whitelisted tags from this list:
+  # https://jujucharms.com/docs/stable/authors-charm-metadata
+  - misc
+subordinate: false
+requires:
+  amqp:
+    interface: rabbitmq
