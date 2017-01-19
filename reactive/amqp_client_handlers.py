@@ -48,23 +48,35 @@ def test_amqp(amqp):
         log(msg, "ERROR")
         status_set("blocked", msg)
         raise e
-    try:
-        # Test last rabbit node added
-        if test(amqp.username(), amqp.password(), amqp.rabbitmq_hosts()[-1]):
-            msg = "Client Succeded"
-            log(msg, "INFO")
-            status_set("active", msg)
-        else:
-            msg = "Client Failed"
-            log(msg, "ERROR")
-            status_set("blocked", msg)
-    except ProbableAuthenticationError as e:
-            msg = ("Athentication Failed to {}"
-                   "".format(amqp.rabbitmq_hosts()[-1]))
-            log(msg, "WARNING")
-            status_set("waiting", msg)
-    except ConnectionClosed as e:
-            msg = ("ConnectionClosed from {}"
-                   "".format(amqp.rabbitmq_hosts()[-1]))
-            log(msg, "WARNING")
-            status_set("waiting", msg)
+    successes = 0
+    for node in amqp.rabbitmq_hosts():
+        try:
+            if test(amqp.username(), amqp.password(), node):
+                successes = successes + 1
+            else:
+                msg = "Client Failed"
+                log(msg, "ERROR")
+                status_set("blocked", msg)
+                raise Exception(msg)
+        except ProbableAuthenticationError as e:
+                msg = ("Athentication Failed to {}"
+                       "".format(node))
+                log(msg, "WARNING")
+                status_set("waiting", msg)
+                raise e
+        except ConnectionClosed as e:
+                msg = ("ConnectionClosed from {}"
+                       "".format(node))
+                log(msg, "WARNING")
+                status_set("waiting", msg)
+                raise e
+    if successes >= len(amqp.rabbitmq_hosts()):
+        msg = ("Client Succeded to all {}"
+               "".format(",".join(amqp.rabbitmq_hosts())))
+        log(msg, "INFO")
+        status_set("active", msg)
+    else:
+        msg = ("Client did NOT succeded to all {}"
+               "".format(",".join(amqp.rabbitmq_hosts())))
+        log(msg, "WARNING")
+        status_set("blocked", msg)
